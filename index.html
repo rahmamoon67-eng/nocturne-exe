@@ -1,0 +1,463 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NOCTURNE.exe</title>
+<style>
+*{box-sizing:border-box}
+:root{--red:#bd263e;--silver:#d5cbd0;--dark:#070609}
+body{margin:0;background:var(--dark);color:var(--silver);font-family:Consolas,monospace;overflow:hidden}
+#app{height:100vh;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#29121b,#0b080e 55%,#030305)}
+#rain{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.drop{position:absolute;width:1px;height:45px;background:linear-gradient(transparent,#a94a61);animation:rain linear infinite;opacity:.4}
+@keyframes rain{to{transform:translateY(110vh)}}
+header,footer{position:absolute;left:0;width:100%;padding:18px 5%;display:flex;justify-content:space-between;z-index:5;background:#05040788}
+header{top:0;border-bottom:1px solid #542532}
+footer{bottom:0;border-top:1px solid #542532;font-size:10px;color:#806a72}
+.logo{color:#d33d54;letter-spacing:5px}
+main{position:absolute;inset:65px 0 55px;display:flex;align-items:center;justify-content:center;padding:15px;overflow:auto}
+.screen{width:min(680px,100%);text-align:center;animation:appear .7s ease}
+@keyframes appear{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+h1{font-family:Georgia,serif;font-size:clamp(38px,8vw,76px);font-weight:400;letter-spacing:8px;color:#eee;text-shadow:0 0 30px #a51e35;margin:8px}
+.tag{color:#c03c52;font-size:10px;letter-spacing:5px;margin:15px}
+.description{line-height:2.1;color:#aaa0a6;font-size:13px;white-space:pre-line;margin:22px auto;max-width:530px}
+.girl{width:185px;height:225px;margin:auto;filter:drop-shadow(0 0 25px #9c263e);animation:float 4s infinite ease-in-out}
+@keyframes float{50%{transform:translateY(-9px)}}
+.buttons{display:flex;justify-content:center;flex-wrap:wrap;gap:9px;margin:25px}
+button{background:#110b11;border:1px solid #77283a;color:#e2cbd1;padding:13px 19px;font:12px Consolas;letter-spacing:1px;cursor:pointer;transition:.2s}
+button:hover{background:#741e32;box-shadow:0 0 20px #ad304c;transform:translateY(-2px)}
+.red{color:#ed5367}
+.stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;color:#b58d98;font-size:11px}
+.stats span{padding:9px;border:1px solid #49212c}
+#music{position:absolute;right:5%;top:76px;z-index:8}
+#music button{padding:8px}
+@media(max-height:650px){.girl{height:145px}.description{margin:10px auto}h1{font-size:42px}}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="rain"></div>
+<header><span class="logo">NOCTURNE.exe</span><span id="status">SYSTEM: UNKNOWN</span></header>
+<div id="music"><button id="musicBtn">♫ MUSIC: OFF</button></div>
+<main id="main"></main>
+<footer><span>PROJECT 404 // DARK ARCHIVE</span><span id="memory">MEMORIES 00/05</span></footer>
+</div>
+
+<script>
+"use strict";
+
+const $=id=>document.getElementById(id);
+const game={memory:0,sanity:100,chapter:0,score:0,audio:null,music:false};
+
+const girl=`
+<svg class="girl" viewBox="0 0 180 230">
+<defs>
+<linearGradient id="hair" x2="1" y2="1">
+<stop stop-color="#512333"/><stop offset="1" stop-color="#070509"/>
+</linearGradient>
+<radialGradient id="skin"><stop stop-color="#f1dce0"/><stop offset="1" stop-color="#b69ba5"/></radialGradient>
+</defs>
+<path d="M25 230Q5 100 37 35Q75 -12 140 35Q180 110 155 230Z" fill="url(#hair)" stroke="#803247" stroke-width="2"/>
+<ellipse cx="90" cy="90" rx="42" ry="55" fill="url(#skin)"/>
+<path d="M47 95Q18 20 78 12Q150 -8 135 80Q110 49 90 52Q65 85 47 95Z" fill="url(#hair)" stroke="#87354b" stroke-width="2"/>
+<path d="M52 65Q12 120 38 195L64 210L62 95Z" fill="#100a11"/>
+<path d="M130 60Q170 120 145 200L118 215L123 92Z" fill="#100a11"/>
+<path d="M64 94Q75 85 83 96M99 96Q110 85 119 95" stroke="#733143" stroke-width="3" fill="none"/>
+<ellipse cx="75" cy="104" rx="5" ry="7" fill="#bd263e"/>
+<ellipse cx="108" cy="104" rx="5" ry="7" fill="#bd263e"/>
+<circle cx="77" cy="102" r="1.5" fill="white"/>
+<circle cx="110" cy="102" r="1.5" fill="white"/>
+<path d="M86 130Q93 134 99 129" stroke="#925665" fill="none"/>
+<path d="M40 166Q90 140 140 166L165 230H15Z" fill="#171016" stroke="#713044" stroke-width="2"/>
+<path d="M90 166V220M70 168L90 190L110 168" stroke="#963449" fill="none" stroke-width="2"/>
+<path d="M29 49L13 30M147 45L164 25" stroke="#9c354c" stroke-width="3"/>
+</svg>`;
+
+function render(title,text,options=[]){
+$("main").innerHTML=`
+<section class="screen">
+${girl}
+<h1>${title}</h1>
+<div class="tag">THE LAST GIRL IN A FORGOTTEN WORLD</div>
+<div class="description">${text}</div>
+<div class="stats">
+<span>MEMORIES: ${game.memory}/5</span>
+<span>SANITY: ${game.sanity}%</span>
+<span>POINTS: ${game.score}</span>
+</div>
+<div class="buttons">
+${options.map((o,i)=>`<button data-i="${i}">${o.label}</button>`).join("")}
+</div>
+</section>`;
+$("main").querySelectorAll("button").forEach((b,i)=>b.onclick=options[i].action);
+$("memory").textContent=`MEMORIES ${String(game.memory).padStart(2,"0")}/05`;
+}
+
+function menu(){
+$("status").textContent="SYSTEM: UNSTABLE";
+render("NOCTURNE",`
+You woke up in a world that forgot your name.
+
+The clocks stopped. The stars disappeared.
+Someone is waiting behind the screen.
+
+<span class="red">DO YOU REMEMBER?</span>
+`,[
+{label:"ENTER THE VOID",action:start},
+{label:"SECRET ARCHIVE",action:archive},
+{label:"MEMORY GAME",action:puzzle}
+]);
+}
+
+function start(){
+game.chapter=1;
+render("AWAKENING",`
+A forgotten room. A broken computer.
+A mysterious girl is standing before you.
+
+She looks exactly like you.
+
+<span class="red">"YOU ARE LATE."</span>
+`,[
+{label:"EXAMINE COMPUTER",action:computer},
+{label:"TALK TO HER",action:girlTalk},
+{label:"SEARCH ROOM",action:room}
+]);
+}
+
+function computer(){
+game.memory=Math.min(5,game.memory+1);
+game.score+=20;
+game.sanity=Math.max(0,game.sanity-5);
+render("SIGNAL 404",`
+A corrupted message appears.
+
+<span class="red">YOU HAVE BEEN HERE BEFORE.</span>
+
+A file is waiting to be opened.
+`,[
+{label:"OPEN FILE",action:file},
+{label:"SHUT DOWN",action:darkness}
+]);
+}
+
+function girlTalk(){
+render("THE OTHER",`
+"I remember everything."
+
+She looks directly into your eyes.
+
+"But you don't remember me."
+`,[
+{label:"ASK HER NAME",action:name},
+{label:"ASK WHAT HAPPENED",action:truth}
+]);
+}
+
+function room(){
+game.score+=10;
+render("THE PHOTOGRAPH",`
+Two girls are standing beneath a black sky.
+
+One face has been scratched out.
+
+<span class="red">NEVER FORGET THE SECOND ONE.</span>
+`,[{label:"KEEP PHOTO",action:hallway}]);
+}
+
+function file(){
+game.memory=Math.min(5,game.memory+1);
+game.score+=30;
+render("MEMORY FOUND",`
+A voice whispers:
+
+"I created this world to remember you."
+
+The recording ends.
+`,[{label:"CONTINUE",action:hallway}]);
+}
+
+function darkness(){
+game.sanity=Math.max(0,game.sanity-10);
+render("BLACKOUT",`
+Three knocks.
+
+A silent room.
+
+<span class="red">TICK. TICK. TICK.</span>
+`,[{label:"FOLLOW THE SOUND",action:hallway}]);
+}
+
+function name(){
+game.score+=15;
+render("NAME NOT FOUND",`
+She looks at the floor.
+
+"My name is..."
+
+The screen glitches.
+
+<span class="red">404 — IDENTITY MISSING</span>
+`,[{label:"CONTINUE",action:hallway}]);
+}
+
+function truth(){
+game.memory=Math.min(5,game.memory+1);
+render("THE TRUTH",`
+"Someone deleted the past."
+
+She points towards a dark hallway.
+
+"Everything is waiting there."
+`,[{label:"FOLLOW HER",action:hallway}]);
+}
+
+function hallway(){
+game.chapter=2;
+render("THE HALLWAY",`
+Five doors. Five forgotten memories.
+One final question.
+
+Choose your destination.
+`,[
+{label:"01 — THE CHILD",action:child},
+{label:"02 — THE MIRROR",action:mirror},
+{label:"03 — THE LETTER",action:letter},
+{label:"04 — THE MEMORY TEST",action:puzzle}
+]);
+}
+
+function child(){
+game.memory=Math.min(5,game.memory+1);
+game.score+=20;
+render("THE CHILD",`
+A little girl sits beside a window.
+
+"Did you come back for me?"
+
+You cannot remember her face.
+`,[{label:"REMEMBER",action:finalRoom}]);
+}
+
+function mirror(){
+game.sanity=Math.max(0,game.sanity-10);
+render("THE MIRROR",`
+Your reflection does not move.
+
+It writes on the glass:
+
+<span class="red">YOU ARE NOT THE ORIGINAL.</span>
+`,[{label:"CONTINUE",action:finalRoom}]);
+}
+
+function letter(){
+game.memory=Math.min(5,game.memory+1);
+render("THE LETTER",`
+"To the person I used to be..."
+
+The rest is unreadable.
+
+A strange symbol is drawn beneath it.
+`,[{label:"CONTINUE",action:finalRoom}]);
+}
+
+/* Memory puzzle */
+function puzzle(){
+const sequence=[2,4,1,3];
+let step=0;
+render("MEMORY TEST",`
+A sequence will appear.
+
+Remember the order, then repeat it.
+<br><br><span class="red" id="sequence">READY?</span>
+`,[{label:"START TEST",action:showSequence}]);
+
+function showSequence(){
+const el=$("sequence");
+let i=0;
+function next(){
+if(i<sequence.length){
+el.textContent=sequence[i];
+i++;
+setTimeout(next,850);
+}else{
+el.textContent="YOUR TURN";
+ask();
+}
+}
+next();
+}
+function ask(){
+let html=`
+<section class="screen">
+${girl}<h1>REPEAT</h1>
+<div class="description">Select the four numbers in the correct order.</div>
+<div class="buttons" id="nums">
+${[1,2,3,4].map(n=>`<button>${n}</button>`).join("")}
+</div></section>`;
+$("main").innerHTML=html;
+let chosen=[];
+$("nums").querySelectorAll("button").forEach((b,i)=>b.onclick=()=>{
+chosen.push(i+1);
+b.disabled=true;
+if(chosen.length===4){
+if(chosen.every((v,j)=>v===sequence[j])){
+game.score+=50;
+game.memory=Math.min(5,game.memory+1);
+render("MEMORY RESTORED",`
+Correct. You recovered a hidden fragment.
+
+<span class="red">+50 POINTS</span>
+`,[{label:"CONTINUE",action:hallway}]);
+}else{
+game.sanity=Math.max(0,game.sanity-15);
+render("MEMORY CORRUPTED",`
+The sequence was incorrect.
+
+The archive remains locked.
+`,[{label:"TRY AGAIN",action:puzzle},{label:"LEAVE",action:hallway}]);
+}
+}
+});
+}
+}
+
+/* Finale */
+function finalRoom(){
+game.chapter=3;
+render("THE LAST MEMORY",`
+The world begins to disappear.
+
+The girl returns.
+
+"Now you must choose."
+
+<span class="red">WHO DO YOU WANT TO BE?</span>
+`,[
+{label:"REMEMBER EVERYTHING",action:endingOne},
+{label:"FORGET EVERYTHING",action:endingTwo},
+{label:"ASK ONE LAST QUESTION",action:lastQuestion}
+]);
+}
+
+function lastQuestion(){
+render("ONE QUESTION",`
+"Why did you create me?"
+
+"Because I was afraid of being forgotten."
+`,[
+{label:"ACCEPT THE TRUTH",action:endingOne},
+{label:"LEAVE",action:endingTwo}
+]);
+}
+
+function endingOne(){
+$("status").textContent="SYSTEM: RESTORED";
+render("AWAKENING",`
+The memories return.
+
+The shadows disappear.
+
+<span class="red">YOU WERE NEVER LOST.</span>
+
+ENDING 01 — THE AWAKENING
+`,[{label:"RESTART",action:restart},{label:"ARCHIVE",action:archive}]);
+}
+
+function endingTwo(){
+$("status").textContent="SYSTEM: OFFLINE";
+render("OBLIVION",`
+The screen fades to black.
+
+"Perhaps we will meet again."
+
+ENDING 02 — THE FORGOTTEN
+`,[{label:"RESTART",action:restart},{label:"ARCHIVE",action:archive}]);
+}
+
+function archive(){
+render("SECRET ARCHIVE",`
+PROJECT: NOCTURNE
+
+SUBJECT: UNKNOWN
+
+STATUS: CORRUPTED
+
+MEMORIES: ${game.memory}
+
+SANITY: ${game.sanity}%
+
+POINTS: ${game.score}
+
+<span class="red">SOMETHING IS STILL WATCHING.</span>
+`,[{label:"RETURN",action:menu},{label:"RESTART",action:restart}]);
+}
+
+function restart(){
+game.memory=0;
+game.sanity=100;
+game.score=0;
+game.chapter=0;
+menu();
+}
+
+/* Original ambient soundtrack using Web Audio */
+function toggleMusic(){
+if(game.music){
+if(game.audio)game.audio.close();
+game.audio=null;
+game.music=false;
+$("musicBtn").textContent="♫ MUSIC: OFF";
+return;
+}
+try{
+const Audio=window.AudioContext||window.webkitAudioContext;
+game.audio=new Audio();
+const ctx=game.audio;
+const master=ctx.createGain();
+master.gain.value=.045;
+master.connect(ctx.destination);
+
+[55,82.41,110].forEach((freq,i)=>{
+const osc=ctx.createOscillator();
+const gain=ctx.createGain();
+osc.type="sine";
+osc.frequency.value=freq;
+gain.gain.value=.25/(i+1);
+osc.connect(gain);
+gain.connect(master);
+osc.start();
+});
+const lfo=ctx.createOscillator();
+const lfoGain=ctx.createGain();
+lfo.frequency.value=.12;
+lfoGain.gain.value=8;
+lfo.connect(lfoGain);
+lfoGain.connect(master.gain);
+lfo.start();
+
+game.music=true;
+$("musicBtn").textContent="♫ MUSIC: ON";
+}catch(e){
+alert("Audio is unavailable in this browser.");
+}
+}
+$("musicBtn").onclick=toggleMusic;
+
+/* Rain */
+for(let i=0;i<65;i++){
+const d=document.createElement("div");
+d.className="drop";
+d.style.left=Math.random()*100+"%";
+d.style.animationDuration=(.6+Math.random()*1.5)+"s";
+d.style.animationDelay=(-Math.random()*3)+"s";
+$("rain").appendChild(d);
+}
+
+menu();
+</script>
+</body>
+</html>
+```
